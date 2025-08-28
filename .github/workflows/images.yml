@@ -46,18 +46,15 @@ jobs:
       - name: Find all Dockerfiles and build/push images
         run: |
           for DOCKERFILE in $(find images/ -type f -name '*.dockerfile'); do
-            IMAGE_NAME=$(basename $(dirname "$DOCKERFILE"))
-            
-            IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}/${IMAGE_NAME}"
-            IMAGE_PATH_LOWERCASE=$(echo "$IMAGE_PATH" | tr '[:upper:]' '[:lower:]')
+            IMAGE_NAME=$(echo "$DOCKERFILE" | cut -d'.' -f1) # Remove .dockerfile
             
             echo "Building and pushing multi-architecture image for $IMAGE_NAME to GHCR"
             
             # The build command now includes the platforms input for multi-arch builds
             docker buildx build --push \
               --file "$DOCKERFILE" \
-              --tag "$DOCKERFILE:latest" \
-              --tag "$DOCKERFILE:sha-${GITHUB_SHA::7}" \
+              --tag "$IMAGE_NAME:latest" \
+              --tag "$IMAGE_NAME:sha-${GITHUB_SHA::7}" \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
               --platform linux/amd64,linux/arm64 \
