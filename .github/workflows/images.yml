@@ -53,8 +53,8 @@ jobs:
             # The build command now includes the platforms input for multi-arch builds
             docker buildx build --push \
               --file "$DOCKERFILE" \
-              --tag "$IMAGE_NAME:latest" \
-              --tag "$IMAGE_NAME:sha-${GITHUB_SHA::7}" \
+              --tag "boveloco/images/$IMAGE_NAME:latest" \
+              --tag "boveloco/images/$IMAGE_NAME:sha-${GITHUB_SHA::7}" \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
               --platform linux/amd64,linux/arm64 \
