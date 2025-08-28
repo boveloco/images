@@ -27,8 +27,16 @@ jobs:
         id: find-dockerfiles
         # The 'find' command outputs a list of paths separated by spaces, which we format as a JSON array
         run: |
-          files=$(find images/ -type f -name '*.dockerfile' | jq -R . | jq -cs .)
-          echo "files=$files" >> $GITHUB_OUTPUT
+          # Use a variable to handle a potential lack of files gracefully
+          files=$(find images/ -type f -name '*.dockerfile' || true)
+          if [ -z "$files" ]; then
+            echo "No Dockerfiles found in 'images/' directory. Setting empty matrix."
+            echo "files=[]" >> $GITHUB_OUTPUT
+          else
+            # Now format the list into a JSON array
+            json_array=$(echo "$files" | jq -R . | jq -cs .)
+            echo "files=$json_array" >> $GITHUB_OUTPUT
+          fi
 
   # This job runs a separate instance for each Dockerfile found in the 'get-files' job
   build-and-push-images:
@@ -71,9 +79,9 @@ jobs:
           # The matrix variable holds the current Dockerfile path
           DOCKERFILE="${{ matrix.dockerfile }}"
           
-          # Extract the directory name, which will be used for the image tag
-          # For a path like 'images/app/server.dockerfile', this gets 'app'
-          IMAGE_NAME=$(basename $(dirname "$DOCKERFILE"))
+          # The image name is now derived directly from the filename, excluding the extension.
+          # For a path like 'images/alpine/test.dockerfile', this gets 'test'
+          IMAGE_NAME=$(basename "$DOCKERFILE" .dockerfile)
           
           # The full image name for GitHub Packages includes the owner and repo
           IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}/${IMAGE_NAME}"
