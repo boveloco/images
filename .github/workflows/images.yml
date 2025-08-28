@@ -56,8 +56,8 @@ jobs:
             # The build command now includes the platforms input for multi-arch builds
             docker buildx build --push \
               --file "$DOCKERFILE" \
-              --tag "$IMAGE_PATH_LOWERCASE:latest" \
-              --tag "$IMAGE_PATH_LOWERCASE:sha-${GITHUB_SHA::7}" \
+              --tag "$DOCKERFILE:latest" \
+              --tag "$DOCKERFILE:sha-${GITHUB_SHA::7}" \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
               --platform linux/amd64,linux/arm64 \
