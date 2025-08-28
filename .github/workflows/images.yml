@@ -1,0 +1,65 @@
+name: Docker Build and Push to GHCR
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Grant GITHUB_TOKEN write permission to packages
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push-images:
+    runs-on: ubuntu-latest
+
+    env:
+      REGISTRY: ghcr.io
+      # Use the owner/repo for the registry path
+      OWNER: ${{ github.repository_owner }}
+      REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        # This is essential for building multi-architecture images on an amd64 runner
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        # This provides access to advanced features for multi-platform builds
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        # Use the GITHUB_TOKEN to authenticate to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find all Dockerfiles and build/push images
+        run: |
+          for DOCKERFILE in $(find image/ -type f -name '*.dockerfile'); do
+            IMAGE_NAME=$(basename $(dirname "$DOCKERFILE"))
+            
+            IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}/${IMAGE_NAME}"
+            IMAGE_PATH_LOWERCASE=$(echo "$IMAGE_PATH" | tr '[:upper:]' '[:lower:]')
+            
+            echo "Building and pushing multi-architecture image for $IMAGE_NAME to GHCR"
+            
+            # The build command now includes the platforms input for multi-arch builds
+            docker buildx build --push \
+              --file "$DOCKERFILE" \
+              --tag "$IMAGE_PATH_LOWERCASE:latest" \
+              --tag "$IMAGE_PATH_LOWERCASE:sha-${GITHUB_SHA::7}" \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              --platform linux/amd64,linux/arm64 \
+              "$(dirname "$DOCKERFILE")"
+          done
