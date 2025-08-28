@@ -45,7 +45,7 @@ jobs:
 
       - name: Find all Dockerfiles and build/push images
         run: |
-          for DOCKERFILE in $(find image/ -type f -name '*.dockerfile'); do
+          for DOCKERFILE in $(find images/ -type f -name '*.dockerfile'); do
             IMAGE_NAME=$(basename $(dirname "$DOCKERFILE"))
             
             IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}/${IMAGE_NAME}"
